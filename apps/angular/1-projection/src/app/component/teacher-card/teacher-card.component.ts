@@ -1,7 +1,18 @@
-import { Component, inject, OnInit } from '@angular/core';
-import { FakeHttpService } from '../../data-access/fake-http.service';
+import { NgOptimizedImage } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  inject,
+  OnInit,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  FakeHttpService,
+  randTeacher,
+} from '../../data-access/fake-http.service';
 import { TeacherStore } from '../../data-access/teacher.store';
-import { CardType } from '../../model/card.model';
+import { ItemTemplateDirective } from '../../directives/item-template.directive';
 import { CardComponent } from '../../ui/card/card.component';
 
 @Component({
@@ -9,26 +20,44 @@ import { CardComponent } from '../../ui/card/card.component';
   template: `
     <app-card
       [list]="teachers()"
-      [type]="cardType"
-      customClass="bg-light-red"></app-card>
+      (add)="onAddTeacher()"
+      (delete)="onDeleteTeacher($event)"
+      [accentColor]="teachersAccent">
+      <img
+        ngSrc="assets/img/teacher.png"
+        width="200"
+        height="200"
+        alt="Teacher"
+        priority />
+      <ng-template appItemTemplate let-item>
+        {{ item.firstName }}
+      </ng-template>
+    </app-card>
   `,
-  styles: [
-    `
-      ::ng-deep .bg-light-red {
-        background-color: rgba(250, 0, 0, 0.1);
-      }
-    `,
-  ],
-  imports: [CardComponent],
+  imports: [CardComponent, NgOptimizedImage, ItemTemplateDirective],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: true,
 })
 export class TeacherCardComponent implements OnInit {
   private http = inject(FakeHttpService);
   private store = inject(TeacherStore);
+  private destroyRef = inject(DestroyRef);
+
+  readonly teachersAccent = 'rgba(250, 0, 0, 0.1)';
 
   teachers = this.store.teachers;
-  cardType = CardType.TEACHER;
+
+  onAddTeacher() {
+    this.store.addOne(randTeacher());
+  }
+
+  onDeleteTeacher(id: number) {
+    this.store.deleteOne(id);
+  }
 
   ngOnInit(): void {
-    this.http.fetchTeachers$.subscribe((t) => this.store.addAll(t));
+    this.http.fetchTeachers$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((t) => this.store.addAll(t));
   }
 }
