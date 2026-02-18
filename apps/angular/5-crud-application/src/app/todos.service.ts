@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, inject } from '@angular/core';
+import { inject, Injectable, signal, WritableSignal } from '@angular/core';
 import { Observable } from 'rxjs';
 
 export interface ITask {
@@ -13,6 +13,8 @@ export interface ITask {
 export class TodosService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = 'https://jsonplaceholder.typicode.com/todos';
+
+  private readonly _todosList: WritableSignal<ITask[]> = signal([]);
 
   getTodos(): Observable<ITask[]> {
     return this.http.get<ITask[]>(this.baseUrl);
