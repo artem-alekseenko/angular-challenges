@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal, WritableSignal } from '@angular/core';
-import { Observable } from 'rxjs';
+import { randText } from '@ngneat/falso';
 
 export interface ITask {
   id: number;
@@ -16,13 +16,23 @@ export class TodosService {
 
   private readonly _todosList: WritableSignal<ITask[]> = signal([]);
 
-  getTodos(): Observable<ITask[]> {
-    return this.http.get<ITask[]>(this.baseUrl);
+  readonly todosList = this._todosList.asReadonly();
+
+  loadTodos(): void {
+    this.http.get<ITask[]>(this.baseUrl).subscribe((list) => {
+      this._todosList.set(list);
+    });
   }
 
-  updateTodo(todo: ITask): Observable<ITask> {
-    return this.http.put<ITask>(`${this.baseUrl}/${todo.id}`, todo, {
-      headers: { 'Content-type': 'application/json; charset=UTF-8' },
-    });
+  update(todo: ITask): void {
+    this.http
+      .put<ITask>(`${this.baseUrl}/${todo.id}`, { ...todo, title: randText() })
+      .subscribe((todoUpdated: ITask) => {
+        this._todosList.update((currentList) =>
+          currentList.map((todo) =>
+            todo.id === todoUpdated.id ? todoUpdated : todo,
+          ),
+        );
+      });
   }
 }
